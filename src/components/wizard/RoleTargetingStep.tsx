@@ -1,9 +1,8 @@
 import { useProfile } from '@/context/ProfileContext';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RoleType, ROLE_DESCRIPTIONS, RolePreference } from '@/types/student';
+import { SuggestibleInput, SuggestibleTextarea } from '@/components/suggestions';
 import { Target, Building, FlaskConical, Store } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -11,12 +10,6 @@ const ROLE_ICONS: Record<RoleType, React.ReactNode> = {
   hospital: <Building className="h-5 w-5" />,
   industry: <FlaskConical className="h-5 w-5" />,
   community: <Store className="h-5 w-5" />,
-};
-
-const ROLE_COLORS: Record<RoleType, string> = {
-  hospital: 'border-blue-500/50 bg-blue-50/50 hover:border-blue-500',
-  industry: 'border-purple-500/50 bg-purple-50/50 hover:border-purple-500',
-  community: 'border-green-500/50 bg-green-50/50 hover:border-green-500',
 };
 
 export function RoleTargetingStep() {
@@ -120,7 +113,8 @@ export function RoleTargetingStep() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Area of Interest / Specialization</Label>
-                <Input
+                <SuggestibleInput
+                  fieldName="interestArea"
                   placeholder={
                     pref.role === 'hospital'
                       ? 'e.g., Oncology, Critical Care, Pediatrics'
@@ -129,31 +123,35 @@ export function RoleTargetingStep() {
                       : 'e.g., Diabetes care, Vaccination services'
                   }
                   value={pref.interestArea}
-                  onChange={(e) =>
-                    updateRolePreference(pref.role, 'interestArea', e.target.value)
+                  onChange={(value) =>
+                    updateRolePreference(pref.role, 'interestArea', value)
                   }
+                  context={{ role: pref.role }}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label>Key Strengths to Highlight</Label>
-                <Textarea
+                <SuggestibleTextarea
+                  fieldName="strengths"
                   placeholder="What makes you a strong candidate for this role?"
                   value={pref.strengths}
-                  onChange={(e) =>
-                    updateRolePreference(pref.role, 'strengths', e.target.value)
+                  onChange={(value) =>
+                    updateRolePreference(pref.role, 'strengths', value)
                   }
+                  context={{ role: pref.role, interestArea: pref.interestArea }}
                   className="h-20"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label>Location Preference (optional)</Label>
-                <Input
+                <SuggestibleInput
+                  fieldName="city"
                   placeholder="e.g., Dubai, Abu Dhabi, Remote"
                   value={pref.locationPreference || ''}
-                  onChange={(e) =>
-                    updateRolePreference(pref.role, 'locationPreference', e.target.value)
+                  onChange={(value) =>
+                    updateRolePreference(pref.role, 'locationPreference', value)
                   }
                 />
               </div>
@@ -176,10 +174,11 @@ export function RoleTargetingStep() {
         <p className="text-sm text-muted-foreground">
           Paste a specific job posting to tailor your CV and cover letter
         </p>
-        <Textarea
+        <SuggestibleTextarea
+          fieldName="jobDescription"
           placeholder="Paste the full job description here..."
           value={jobDescription || ''}
-          onChange={(e) => updateProfile('jobDescription', e.target.value)}
+          onChange={(value) => updateProfile('jobDescription', value)}
           className="h-40 font-mono text-sm"
         />
       </div>
