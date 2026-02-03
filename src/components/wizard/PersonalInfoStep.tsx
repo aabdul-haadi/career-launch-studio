@@ -1,6 +1,7 @@
 import { useProfile } from '@/context/ProfileContext';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SuggestibleInput } from '@/components/suggestions';
 import { User, Phone, Mail, MapPin, Linkedin } from 'lucide-react';
 
 export function PersonalInfoStep() {
@@ -28,11 +29,12 @@ export function PersonalInfoStep() {
             <User className="h-4 w-4 text-teal" />
             Full Name *
           </Label>
-          <Input
+          <SuggestibleInput
             id="fullName"
+            fieldName="fullName"
             placeholder="e.g., Ahmed Al-Rashid"
             value={personal.fullName}
-            onChange={(e) => handleChange('fullName', e.target.value)}
+            onChange={(value) => handleChange('fullName', value)}
             className="transition-all focus:ring-2 focus:ring-teal/20"
           />
         </div>
@@ -73,21 +75,23 @@ export function PersonalInfoStep() {
               <MapPin className="h-4 w-4 text-teal" />
               City *
             </Label>
-            <Input
+            <SuggestibleInput
               id="city"
+              fieldName="city"
               placeholder="Dubai"
               value={personal.city}
-              onChange={(e) => handleChange('city', e.target.value)}
+              onChange={(value) => handleChange('city', value)}
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="country">Country *</Label>
-            <Input
+            <SuggestibleInput
               id="country"
+              fieldName="country"
               placeholder="United Arab Emirates"
               value={personal.country}
-              onChange={(e) => handleChange('country', e.target.value)}
+              onChange={(value) => handleChange('country', value)}
             />
           </div>
         </div>

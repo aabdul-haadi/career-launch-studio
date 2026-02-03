@@ -1,9 +1,8 @@
-import { useState } from 'react';
 import { useProfile } from '@/context/ProfileContext';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { SuggestibleInput, SuggestibleTextarea } from '@/components/suggestions';
 import {
   Select,
   SelectContent,
@@ -111,22 +110,26 @@ export function ExperienceStep() {
                     <Building2 className="h-4 w-4 text-teal" />
                     Organization
                   </Label>
-                  <Input
+                  <SuggestibleInput
+                    fieldName="organization"
                     placeholder="e.g., Cleveland Clinic Abu Dhabi"
                     value={exp.organization}
-                    onChange={(e) =>
-                      updateExperience(exp.id, 'organization', e.target.value)
+                    onChange={(value) =>
+                      updateExperience(exp.id, 'organization', value)
                     }
+                    context={{ type: exp.type }}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Department</Label>
-                  <Input
+                  <SuggestibleInput
+                    fieldName="department"
                     placeholder="e.g., Inpatient Pharmacy"
                     value={exp.department}
-                    onChange={(e) =>
-                      updateExperience(exp.id, 'department', e.target.value)
+                    onChange={(value) =>
+                      updateExperience(exp.id, 'department', value)
                     }
+                    context={{ organization: exp.organization, type: exp.type }}
                   />
                 </div>
               </div>
@@ -159,24 +162,37 @@ export function ExperienceStep() {
 
               <div className="space-y-2">
                 <Label>Responsibilities</Label>
-                <Textarea
+                <SuggestibleTextarea
+                  fieldName="responsibilities"
                   placeholder="Describe your key responsibilities..."
                   value={exp.responsibilities}
-                  onChange={(e) =>
-                    updateExperience(exp.id, 'responsibilities', e.target.value)
+                  onChange={(value) =>
+                    updateExperience(exp.id, 'responsibilities', value)
                   }
+                  context={{
+                    organization: exp.organization,
+                    department: exp.department,
+                    type: exp.type,
+                  }}
                   className="h-20"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label>Achievements (optional)</Label>
-                <Textarea
+                <SuggestibleTextarea
+                  fieldName="achievements"
                   placeholder="Any notable achievements or outcomes..."
                   value={exp.achievements}
-                  onChange={(e) =>
-                    updateExperience(exp.id, 'achievements', e.target.value)
+                  onChange={(value) =>
+                    updateExperience(exp.id, 'achievements', value)
                   }
+                  context={{
+                    organization: exp.organization,
+                    department: exp.department,
+                    type: exp.type,
+                    responsibilities: exp.responsibilities,
+                  }}
                   className="h-20"
                 />
               </div>

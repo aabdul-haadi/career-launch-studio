@@ -1,8 +1,7 @@
 import { useProfile } from '@/context/ProfileContext';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { SuggestibleInput, SuggestibleTextarea } from '@/components/suggestions';
 import { FYP_TOOLS_OPTIONS } from '@/types/student';
 import { FileText, Target, FlaskConical, Wrench, Trophy } from 'lucide-react';
 
@@ -39,11 +38,12 @@ export function FYPStep() {
             <FileText className="h-4 w-4 text-teal" />
             Project Title / Topic
           </Label>
-          <Input
+          <SuggestibleInput
             id="title"
+            fieldName="fypTitle"
             placeholder="e.g., Evaluation of Community Pharmacist Interventions in Diabetes Management"
             value={fyp.title}
-            onChange={(e) => handleChange('title', e.target.value)}
+            onChange={(value) => handleChange('title', value)}
           />
         </div>
 
@@ -52,11 +52,13 @@ export function FYPStep() {
             <Target className="h-4 w-4 text-teal" />
             Objectives
           </Label>
-          <Textarea
+          <SuggestibleTextarea
             id="objectives"
+            fieldName="fypObjectives"
             placeholder="What are the main objectives of your project?"
             value={fyp.objectives}
-            onChange={(e) => handleChange('objectives', e.target.value)}
+            onChange={(value) => handleChange('objectives', value)}
+            context={{ title: fyp.title }}
             className="h-24"
           />
         </div>
@@ -66,11 +68,13 @@ export function FYPStep() {
             <FlaskConical className="h-4 w-4 text-teal" />
             Methods / Study Design
           </Label>
-          <Textarea
+          <SuggestibleTextarea
             id="methods"
+            fieldName="fypMethods"
             placeholder="e.g., Cross-sectional study, systematic review, laboratory analysis..."
             value={fyp.methods}
-            onChange={(e) => handleChange('methods', e.target.value)}
+            onChange={(value) => handleChange('methods', value)}
+            context={{ title: fyp.title, objectives: fyp.objectives }}
             className="h-24"
           />
         </div>
@@ -101,11 +105,18 @@ export function FYPStep() {
             <Trophy className="h-4 w-4 text-teal" />
             Key Outcomes / Findings (if available)
           </Label>
-          <Textarea
+          <SuggestibleTextarea
             id="outcomes"
+            fieldName="fypOutcomes"
             placeholder="Any preliminary findings, results, or expected outcomes..."
             value={fyp.outcomes || ''}
-            onChange={(e) => handleChange('outcomes', e.target.value)}
+            onChange={(value) => handleChange('outcomes', value)}
+            context={{ 
+              title: fyp.title, 
+              objectives: fyp.objectives,
+              methods: fyp.methods,
+              tools: fyp.tools,
+            }}
             className="h-24"
           />
         </div>
