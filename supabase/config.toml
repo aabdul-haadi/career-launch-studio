@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.ai-suggestions]
 verify_jwt = false
+
+[functions.job-market-analysis]
+verify_jwt = false
+
+[functions.career-pathway]
+verify_jwt = false
