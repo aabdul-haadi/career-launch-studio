@@ -1,12 +1,14 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { ProfileProvider, useProfile } from '@/context/ProfileContext';
 import { ProfileWizard } from '@/components/wizard/ProfileWizard';
 import { OutputPanel } from '@/components/output/OutputPanel';
+import { IntelligencePanel } from '@/components/intelligence/IntelligencePanel';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { generateCareerPack } from '@/services/generateService';
 import { SavedCase } from '@/types/student';
 import { toast } from 'sonner';
-import { Save, Upload, RotateCcw, Pill } from 'lucide-react';
+import { Save, Upload, RotateCcw, Pill, FileText, Brain } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 function AppContent() {
@@ -22,6 +24,7 @@ function AppContent() {
   } = useProfile();
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [activeTab, setActiveTab] = useState<'outputs' | 'intelligence'>('outputs');
 
   const handleGenerate = async () => {
     try {
@@ -93,7 +96,7 @@ function AppContent() {
                   Career Launch Pack Generator
                 </h1>
                 <p className="text-xs text-muted-foreground">
-                  Pharmacy Final Year
+                  Pharmacy Final Year • AI-Powered Career Intelligence
                 </p>
               </div>
             </div>
@@ -159,26 +162,35 @@ function AppContent() {
             </div>
           </motion.div>
 
-          {/* Right Panel - Outputs */}
+          {/* Right Panel - Outputs & Intelligence */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.3, delay: 0.1 }}
             className="bg-card border border-border rounded-xl shadow-sm overflow-hidden flex flex-col"
           >
-            <div className="px-4 py-3 border-b border-border bg-muted/30">
-              <h2 className="font-serif text-lg font-semibold text-foreground">
-                Generated Outputs
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                {generatedOutputs
-                  ? 'Edit and export your documents'
-                  : 'Complete your profile and generate'}
-              </p>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <OutputPanel />
-            </div>
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'outputs' | 'intelligence')} className="flex flex-col h-full">
+              <div className="px-4 py-3 border-b border-border bg-muted/30">
+                <TabsList className="grid grid-cols-2 w-full max-w-sm">
+                  <TabsTrigger value="outputs" className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Documents
+                  </TabsTrigger>
+                  <TabsTrigger value="intelligence" className="flex items-center gap-2">
+                    <Brain className="h-4 w-4" />
+                    Intelligence
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              <TabsContent value="outputs" className="flex-1 overflow-hidden mt-0">
+                <OutputPanel />
+              </TabsContent>
+
+              <TabsContent value="intelligence" className="flex-1 overflow-hidden mt-0">
+                <IntelligencePanel />
+              </TabsContent>
+            </Tabs>
           </motion.div>
         </div>
       </main>
