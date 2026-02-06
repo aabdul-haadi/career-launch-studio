@@ -8,8 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { generateCareerPack } from '@/services/generateService';
 import { SavedCase } from '@/types/student';
 import { toast } from 'sonner';
-import { Save, Upload, RotateCcw, Pill, FileText, Brain } from 'lucide-react';
+import { Save, Upload, RotateCcw, Pill, FileText, Brain, ClipboardList } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { generateStudentDataForm } from '@/utils/generateStudentForm';
 
 function AppContent() {
   const {
@@ -102,6 +103,18 @@ function AppContent() {
             </div>
 
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  generateStudentDataForm();
+                  toast.success('Student data form downloaded!');
+                }}
+                className="text-primary border-primary/30 hover:bg-primary/10"
+              >
+                <ClipboardList className="h-4 w-4 mr-1" />
+                Get Form
+              </Button>
               <input
                 ref={fileInputRef}
                 type="file"
