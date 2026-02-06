@@ -22,8 +22,11 @@ import {
   Briefcase,
   Star,
   ArrowRight,
-  Zap
+  Zap,
+  Download,
+  FileText
 } from 'lucide-react';
+import { exportCareerPathwayToPDF, CareerPathwayData } from '@/utils/export';
 
 interface CareerPathwayAnalysis {
   profileAssessment: {
@@ -123,6 +126,17 @@ export function CareerPathwayModule() {
     }
   };
 
+  const handleExportPDF = async () => {
+    if (!analysis) return;
+    try {
+      await exportCareerPathwayToPDF(analysis as CareerPathwayData, profile.personal.fullName || 'Candidate');
+      toast.success('Career pathway exported to PDF');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export PDF');
+    }
+  };
+
   const getReadinessColor = (level: string) => {
     switch (level) {
       case 'ready': return 'bg-success text-success-foreground';
@@ -170,23 +184,36 @@ export function CareerPathwayModule() {
               <Target className="h-5 w-5 text-teal" />
               Predictive Career Pathway
             </CardTitle>
-            <Button 
-              onClick={handleAnalyze} 
-              disabled={isLoading || !isProfileComplete}
-              className="btn-generate"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Analyze My Pathway
-                </>
+            <div className="flex items-center gap-2">
+              {analysis && (
+                <Button 
+                  onClick={handleExportPDF}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Export PDF
+                </Button>
               )}
-            </Button>
+              <Button 
+                onClick={handleAnalyze} 
+                disabled={isLoading || !isProfileComplete}
+                className="btn-generate"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Analyze My Pathway
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
           {!isProfileComplete && (
             <p className="text-sm text-muted-foreground mt-2">

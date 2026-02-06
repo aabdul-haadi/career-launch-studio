@@ -24,8 +24,15 @@ import {
   Briefcase,
   Loader2,
   Globe,
-  Users
+  Users,
+  BarChart3
 } from 'lucide-react';
+import { 
+  ChartContainer, 
+  ChartTooltip, 
+  ChartTooltipContent 
+} from '@/components/ui/chart';
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import { RoleType, ROLE_DESCRIPTIONS } from '@/types/student';
 
 interface JobMarketAnalysis {
@@ -69,6 +76,110 @@ const COUNTRIES = [
   'Pakistan', 'Egypt', 'South Africa', 'Nigeria', 'Malaysia',
   'New Zealand', 'Ireland', 'Netherlands', 'Sweden', 'Switzerland'
 ];
+
+// Salary Comparison Chart Component
+interface SalaryChartProps {
+  salaryBenchmarks: {
+    currency: string;
+    entryLevel: { min: number; max: number };
+    midLevel: { min: number; max: number };
+    seniorLevel: { min: number; max: number };
+  };
+  formatSalary: (amount: number, currency: string) => string;
+}
+
+const chartConfig = {
+  salary: {
+    label: "Salary Range",
+    color: "hsl(var(--teal))",
+  },
+};
+
+function SalaryComparisonChart({ salaryBenchmarks, formatSalary }: SalaryChartProps) {
+  const chartData = [
+    {
+      level: 'Entry Level',
+      min: salaryBenchmarks.entryLevel.min,
+      max: salaryBenchmarks.entryLevel.max,
+      avg: (salaryBenchmarks.entryLevel.min + salaryBenchmarks.entryLevel.max) / 2,
+      fill: 'hsl(217, 91%, 60%)', // Blue
+    },
+    {
+      level: 'Mid Level',
+      min: salaryBenchmarks.midLevel.min,
+      max: salaryBenchmarks.midLevel.max,
+      avg: (salaryBenchmarks.midLevel.min + salaryBenchmarks.midLevel.max) / 2,
+      fill: 'hsl(var(--teal))', // Teal
+    },
+    {
+      level: 'Senior Level',
+      min: salaryBenchmarks.seniorLevel.min,
+      max: salaryBenchmarks.seniorLevel.max,
+      avg: (salaryBenchmarks.seniorLevel.min + salaryBenchmarks.seniorLevel.max) / 2,
+      fill: 'hsl(160, 84%, 39%)', // Emerald
+    },
+  ];
+
+  return (
+    <ChartContainer config={chartConfig} className="h-full w-full">
+      <BarChart 
+        data={chartData} 
+        layout="vertical"
+        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+      >
+        <XAxis 
+          type="number" 
+          tickFormatter={(value) => formatSalary(value, salaryBenchmarks.currency).replace(/\.\d+/, '')}
+          axisLine={false}
+          tickLine={false}
+          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+        />
+        <YAxis 
+          type="category" 
+          dataKey="level" 
+          axisLine={false}
+          tickLine={false}
+          tick={{ fill: 'hsl(var(--foreground))', fontSize: 12, fontWeight: 500 }}
+          width={90}
+        />
+        <ChartTooltip
+          content={
+            <ChartTooltipContent 
+              formatter={(value, name, item) => (
+                <div className="flex flex-col gap-1">
+                  <span className="font-medium">{item.payload.level}</span>
+                  <span className="text-muted-foreground">
+                    Min: {formatSalary(item.payload.min, salaryBenchmarks.currency)}
+                  </span>
+                  <span className="text-muted-foreground">
+                    Max: {formatSalary(item.payload.max, salaryBenchmarks.currency)}
+                  </span>
+                </div>
+              )}
+            />
+          }
+        />
+        <Bar 
+          dataKey="avg" 
+          radius={[0, 6, 6, 0]}
+          barSize={40}
+        >
+          {chartData.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={entry.fill} />
+          ))}
+          <LabelList
+            dataKey="avg"
+            position="right"
+            formatter={(value: number) => formatSalary(value, salaryBenchmarks.currency).replace(/\.\d+/, '')}
+            fill="hsl(var(--foreground))"
+            fontSize={11}
+            fontWeight={600}
+          />
+        </Bar>
+      </BarChart>
+    </ChartContainer>
+  );
+}
 
 export function JobMarketModule() {
   const { profile } = useProfile();
@@ -280,19 +391,34 @@ export function JobMarketModule() {
               <TabsContent value="salary" className="mt-4">
                 <Card>
                   <CardContent className="pt-6 space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Salary Chart */}
+                    <div className="h-[280px] w-full">
+                      <SalaryComparisonChart 
+                        salaryBenchmarks={analysis.salaryBenchmarks}
+                        formatSalary={formatSalary}
+                      />
+                    </div>
+                    
+                    {/* Salary Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-border">
                       {['entryLevel', 'midLevel', 'seniorLevel'].map((level) => {
                         const data = analysis.salaryBenchmarks[level as keyof typeof analysis.salaryBenchmarks];
                         if (typeof data !== 'object') return null;
+                        const colors = {
+                          entryLevel: 'from-blue-500/20 to-blue-600/10 border-blue-500/30',
+                          midLevel: 'from-teal/20 to-teal/10 border-teal/30',
+                          seniorLevel: 'from-emerald-500/20 to-emerald-600/10 border-emerald-500/30'
+                        };
                         return (
-                          <div key={level} className="space-y-2">
-                            <h4 className="font-medium capitalize text-foreground">
+                          <div key={level} className={`p-4 rounded-lg bg-gradient-to-br ${colors[level as keyof typeof colors]} border space-y-2`}>
+                            <h4 className="font-medium capitalize text-foreground text-sm flex items-center gap-2">
+                              <BarChart3 className="h-4 w-4" />
                               {level.replace(/([A-Z])/g, ' $1').trim()}
                             </h4>
-                            <div className="text-2xl font-bold text-teal">
+                            <div className="text-xl font-bold text-foreground">
                               {formatSalary((data as any).min, analysis.salaryBenchmarks.currency)} - {formatSalary((data as any).max, analysis.salaryBenchmarks.currency)}
                             </div>
-                            <p className="text-sm text-muted-foreground">per year</p>
+                            <p className="text-xs text-muted-foreground">annual salary range</p>
                           </div>
                         );
                       })}
