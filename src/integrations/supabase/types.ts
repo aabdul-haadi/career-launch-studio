@@ -14,7 +14,126 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      admins: {
+        Row: {
+          created_at: string
+          id: string
+          password_hash: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          password_hash: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          password_hash?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      student_submissions: {
+        Row: {
+          certifications: Json | null
+          coursework: Json | null
+          created_at: string
+          degree: string
+          email: string
+          experience: Json | null
+          full_name: string
+          fyp_methods: string | null
+          fyp_objectives: string | null
+          fyp_outcomes: string | null
+          fyp_supervisor: string | null
+          fyp_title: string | null
+          fyp_tools: string | null
+          generated_outputs: Json | null
+          gpa: string | null
+          graduation_year: string | null
+          id: string
+          job_description: string | null
+          languages: Json | null
+          linkedin_url: string | null
+          nationality: string | null
+          phone: string | null
+          processed_at: string | null
+          reference_code: string
+          selected_roles: Json | null
+          soft_skills: Json | null
+          status: Database["public"]["Enums"]["submission_status"]
+          technical_skills: Json | null
+          university: string
+          updated_at: string
+        }
+        Insert: {
+          certifications?: Json | null
+          coursework?: Json | null
+          created_at?: string
+          degree: string
+          email: string
+          experience?: Json | null
+          full_name: string
+          fyp_methods?: string | null
+          fyp_objectives?: string | null
+          fyp_outcomes?: string | null
+          fyp_supervisor?: string | null
+          fyp_title?: string | null
+          fyp_tools?: string | null
+          generated_outputs?: Json | null
+          gpa?: string | null
+          graduation_year?: string | null
+          id?: string
+          job_description?: string | null
+          languages?: Json | null
+          linkedin_url?: string | null
+          nationality?: string | null
+          phone?: string | null
+          processed_at?: string | null
+          reference_code?: string
+          selected_roles?: Json | null
+          soft_skills?: Json | null
+          status?: Database["public"]["Enums"]["submission_status"]
+          technical_skills?: Json | null
+          university: string
+          updated_at?: string
+        }
+        Update: {
+          certifications?: Json | null
+          coursework?: Json | null
+          created_at?: string
+          degree?: string
+          email?: string
+          experience?: Json | null
+          full_name?: string
+          fyp_methods?: string | null
+          fyp_objectives?: string | null
+          fyp_outcomes?: string | null
+          fyp_supervisor?: string | null
+          fyp_title?: string | null
+          fyp_tools?: string | null
+          generated_outputs?: Json | null
+          gpa?: string | null
+          graduation_year?: string | null
+          id?: string
+          job_description?: string | null
+          languages?: Json | null
+          linkedin_url?: string | null
+          nationality?: string | null
+          phone?: string | null
+          processed_at?: string | null
+          reference_code?: string
+          selected_roles?: Json | null
+          soft_skills?: Json | null
+          status?: Database["public"]["Enums"]["submission_status"]
+          technical_skills?: Json | null
+          university?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +142,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      submission_status: "pending" | "in_review" | "processing" | "completed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +269,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      submission_status: ["pending", "in_review", "processing", "completed"],
+    },
   },
 } as const
