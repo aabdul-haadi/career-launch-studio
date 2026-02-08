@@ -39,9 +39,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    const apiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!apiKey) {
-      throw new Error('LOVABLE_API_KEY not configured');
+    // Try DeepSeek first, fallback to Lovable AI
+    const deepseekKey = Deno.env.get('DEEPSEEK_API_KEY');
+    const lovableKey = Deno.env.get('LOVABLE_API_KEY');
+    
+    if (!deepseekKey && !lovableKey) {
+      throw new Error('No AI API key configured');
     }
 
     // Build context message
@@ -65,19 +68,52 @@ Student info so far:
       { role: 'user', content: message },
     ];
 
-    const response = await fetch('https://api.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages,
-        max_tokens: 500,
-        temperature: 0.7,
-      }),
-    });
+    let response;
+    let useDeepSeek = !!deepseekKey;
+    
+    // Try DeepSeek first if available
+    if (useDeepSeek) {
+      response = await fetch('https://api.deepseek.com/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${deepseekKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages,
+          max_tokens: 500,
+          temperature: 0.7,
+        }),
+      });
+      
+      // If DeepSeek fails (402, 429, etc.), fallback to Lovable AI
+      if (!response.ok && lovableKey) {
+        console.log('DeepSeek failed, falling back to Lovable AI');
+        useDeepSeek = false;
+      }
+    }
+    
+    // Fallback to Lovable AI Gateway
+    if (!useDeepSeek && lovableKey) {
+      response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages,
+          max_tokens: 500,
+          temperature: 0.7,
+        }),
+      });
+    }
+    
+    if (!response) {
+      throw new Error('No AI provider available');
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
