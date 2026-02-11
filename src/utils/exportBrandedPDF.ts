@@ -26,11 +26,12 @@ const COLORS = {
   border: [226, 232, 240] as [number, number, number],
 };
 
-export async function exportBrandedCareerPack(
+function buildPDF(
   outputs: GeneratedOutputs,
   studentName: string,
-  referenceCode?: string
-): Promise<void> {
+  referenceCode?: string,
+  docType?: string
+): jsPDF {
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
   const margin = 15;
@@ -146,116 +147,133 @@ export async function exportBrandedCareerPack(
     }
   };
 
-  // === PAGE 1: CV ===
-  drawPageHeader('Curriculum Vitae');
-  const cvLines = outputs.cv.split('\n');
-  for (const line of cvLines) {
-    const trimmed = line.trim();
-    if (!trimmed) { y += 2.5; continue; }
-    if (trimmed.includes('===') || trimmed.includes('---')) { drawDivider(); continue; }
+  const shouldInclude = (type: string) => !docType || docType === 'full' || docType === type;
 
-    const isHeader = trimmed === trimmed.toUpperCase() && trimmed.length < 60 && trimmed.length > 2;
-    if (isHeader) {
-      y += 2;
-      drawSectionHeader(trimmed);
-    } else if (trimmed.startsWith('•') || trimmed.startsWith('-')) {
-      drawText(trimmed, { size: 9.5, indent: 4 });
-    } else {
-      drawText(trimmed, { size: 9.5 });
+  // === PAGE 1: CV ===
+  let firstPage = true;
+  if (shouldInclude('cv')) {
+    if (!firstPage) { pdf.addPage(); y = margin; }
+    firstPage = false;
+    drawPageHeader('Curriculum Vitae');
+    const cvLines = outputs.cv.split('\n');
+    for (const line of cvLines) {
+      const trimmed = line.trim();
+      if (!trimmed) { y += 2.5; continue; }
+      if (trimmed.includes('===') || trimmed.includes('---')) { drawDivider(); continue; }
+      const isHeader = trimmed === trimmed.toUpperCase() && trimmed.length < 60 && trimmed.length > 2;
+      if (isHeader) {
+        y += 2;
+        drawSectionHeader(trimmed);
+      } else if (trimmed.startsWith('•') || trimmed.startsWith('-')) {
+        drawText(trimmed, { size: 9.5, indent: 4 });
+      } else {
+        drawText(trimmed, { size: 9.5 });
+      }
     }
   }
 
   // === LinkedIn Profile ===
-  pdf.addPage();
-  y = margin;
-  drawPageHeader('LinkedIn Optimization');
-
-  drawSectionHeader('Headline');
-  drawText(outputs.linkedin.headline);
-  y += 4;
-
-  drawSectionHeader('About Section');
-  drawText(outputs.linkedin.about);
-  y += 4;
-
-  if (outputs.linkedin.experienceBullets?.length > 0) {
-    drawSectionHeader('Experience Highlights');
-    outputs.linkedin.experienceBullets.forEach(bullet => {
-      drawText(`• ${bullet}`, { indent: 4, size: 9.5 });
-    });
-  }
-  y += 4;
-
-  if (outputs.linkedin.skills?.length > 0) {
-    drawSectionHeader('Recommended Skills');
-    drawText(outputs.linkedin.skills.join('  •  '), { size: 9.5 });
-  }
-
-  if (outputs.linkedin.networkingMessage) {
+  if (shouldInclude('linkedin')) {
+    if (!firstPage) { pdf.addPage(); y = margin; } else { firstPage = false; }
+    drawPageHeader('LinkedIn Optimization');
+    drawSectionHeader('Headline');
+    drawText(outputs.linkedin.headline);
     y += 4;
-    drawSectionHeader('Networking Message');
-    drawText(outputs.linkedin.networkingMessage);
+    drawSectionHeader('About Section');
+    drawText(outputs.linkedin.about);
+    y += 4;
+    if (outputs.linkedin.experienceBullets?.length > 0) {
+      drawSectionHeader('Experience Highlights');
+      outputs.linkedin.experienceBullets.forEach(bullet => {
+        drawText(`• ${bullet}`, { indent: 4, size: 9.5 });
+      });
+    }
+    y += 4;
+    if (outputs.linkedin.skills?.length > 0) {
+      drawSectionHeader('Recommended Skills');
+      drawText(outputs.linkedin.skills.join('  •  '), { size: 9.5 });
+    }
+    if (outputs.linkedin.networkingMessage) {
+      y += 4;
+      drawSectionHeader('Networking Message');
+      drawText(outputs.linkedin.networkingMessage);
+    }
   }
 
   // === Cover Letters ===
   outputs.coverLetters.forEach(({ role, content }) => {
-    pdf.addPage();
-    y = margin;
-    drawPageHeader(`Cover Letter — ${ROLE_DESCRIPTIONS[role]}`);
-
-    const letterLines = content.split('\n');
-    for (const line of letterLines) {
-      if (!line.trim()) { y += 3; continue; }
-      drawText(line, { size: 9.5 });
+    if (shouldInclude(`cover-${role}`)) {
+      if (!firstPage) { pdf.addPage(); y = margin; } else { firstPage = false; }
+      drawPageHeader(`Cover Letter — ${ROLE_DESCRIPTIONS[role]}`);
+      const letterLines = content.split('\n');
+      for (const line of letterLines) {
+        if (!line.trim()) { y += 3; continue; }
+        drawText(line, { size: 9.5 });
+      }
     }
   });
 
   // === Interview Prep ===
   outputs.interviewPrep.forEach(({ role, behavioral, technical, tellMeAboutYourself, questionsToAsk }) => {
-    pdf.addPage();
-    y = margin;
-    drawPageHeader(`Interview Preparation — ${ROLE_DESCRIPTIONS[role]}`);
-
-    drawSectionHeader('"Tell Me About Yourself"');
-    drawText('Short Version:', { bold: true, size: 9.5 });
-    drawText(tellMeAboutYourself.short, { size: 9.5 });
-    y += 3;
-    drawText('Extended Version:', { bold: true, size: 9.5 });
-    drawText(tellMeAboutYourself.long, { size: 9.5 });
-    y += 4;
-
-    if (behavioral?.length > 0) {
-      drawSectionHeader('Behavioral Questions');
-      behavioral.slice(0, 4).forEach((qa, idx) => {
-        addNewPageIfNeeded(20);
-        drawText(`Q${idx + 1}: ${qa.question}`, { bold: true, size: 9.5 });
-        drawText(qa.answer, { indent: 4, size: 9, color: COLORS.textMuted });
-        y += 3;
-      });
-    }
-
-    if (technical?.length > 0) {
-      drawSectionHeader('Technical Questions');
-      technical.slice(0, 4).forEach((qa, idx) => {
-        addNewPageIfNeeded(20);
-        drawText(`Q${idx + 1}: ${qa.question}`, { bold: true, size: 9.5 });
-        drawText(qa.answer, { indent: 4, size: 9, color: COLORS.textMuted });
-        y += 3;
-      });
-    }
-
-    if (questionsToAsk?.length > 0) {
-      drawSectionHeader('Questions to Ask the Interviewer');
-      questionsToAsk.forEach(q => {
-        drawText(`• ${q}`, { indent: 4, size: 9.5 });
-      });
+    if (shouldInclude(`interview-${role}`)) {
+      if (!firstPage) { pdf.addPage(); y = margin; } else { firstPage = false; }
+      drawPageHeader(`Interview Preparation — ${ROLE_DESCRIPTIONS[role]}`);
+      drawSectionHeader('"Tell Me About Yourself"');
+      drawText('Short Version:', { bold: true, size: 9.5 });
+      drawText(tellMeAboutYourself.short, { size: 9.5 });
+      y += 3;
+      drawText('Extended Version:', { bold: true, size: 9.5 });
+      drawText(tellMeAboutYourself.long, { size: 9.5 });
+      y += 4;
+      if (behavioral?.length > 0) {
+        drawSectionHeader('Behavioral Questions');
+        behavioral.slice(0, 4).forEach((qa, idx) => {
+          addNewPageIfNeeded(20);
+          drawText(`Q${idx + 1}: ${qa.question}`, { bold: true, size: 9.5 });
+          drawText(qa.answer, { indent: 4, size: 9, color: COLORS.textMuted });
+          y += 3;
+        });
+      }
+      if (technical?.length > 0) {
+        drawSectionHeader('Technical Questions');
+        technical.slice(0, 4).forEach((qa, idx) => {
+          addNewPageIfNeeded(20);
+          drawText(`Q${idx + 1}: ${qa.question}`, { bold: true, size: 9.5 });
+          drawText(qa.answer, { indent: 4, size: 9, color: COLORS.textMuted });
+          y += 3;
+        });
+      }
+      if (questionsToAsk?.length > 0) {
+        drawSectionHeader('Questions to Ask the Interviewer');
+        questionsToAsk.forEach(q => {
+          drawText(`• ${q}`, { indent: 4, size: 9.5 });
+        });
+      }
     }
   });
 
   addFooter();
+  return pdf;
+}
 
+export async function exportBrandedCareerPack(
+  outputs: GeneratedOutputs,
+  studentName: string,
+  referenceCode?: string
+): Promise<void> {
+  const pdf = buildPDF(outputs, studentName, referenceCode);
   const filename = referenceCode
     ? `Career_Launch_Pack_${studentName.replace(/\s+/g, '_')}_${referenceCode}.pdf`
     : `Career_Launch_Pack_${studentName.replace(/\s+/g, '_')}.pdf`;
   pdf.save(filename);
+}
+
+export async function generateDocumentPDFBytes(
+  outputs: GeneratedOutputs,
+  studentName: string,
+  docType: string,
+  referenceCode?: string
+): Promise<ArrayBuffer> {
+  const pdf = buildPDF(outputs, studentName, referenceCode, docType);
+  return pdf.output('arraybuffer');
 }

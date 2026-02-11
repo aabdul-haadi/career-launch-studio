@@ -6,9 +6,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Pill, Search, ArrowLeft, CheckCircle2, Clock, FileText, Loader2 } from 'lucide-react';
+import { Pill, Search, ArrowLeft, CheckCircle2, Clock, FileText, Loader2, Download, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { SubmissionStatus, STATUS_LABELS, STATUS_COLORS } from '@/types/submission';
+
+interface SharedDocument {
+  name: string;
+  type: string;
+  url: string;
+  size: number;
+}
 
 interface SubmissionData {
   reference_code: string;
@@ -17,6 +24,9 @@ interface SubmissionData {
   email: string;
   created_at: string;
   processed_at: string | null;
+  shared_documents: SharedDocument[] | null;
+  shared_at: string | null;
+  share_expires_at: string | null;
 }
 
 export default function StatusCheck() {
@@ -44,7 +54,7 @@ export default function StatusCheck() {
     try {
       const { data, error: fetchError } = await supabase
         .from('student_submissions')
-        .select('reference_code, status, full_name, email, created_at, processed_at')
+        .select('reference_code, status, full_name, email, created_at, processed_at, shared_documents, shared_at, share_expires_at')
         .eq('reference_code', referenceCode.toUpperCase().trim())
         .single();
 
@@ -52,7 +62,7 @@ export default function StatusCheck() {
         setError('No submission found with this reference code');
         setSubmission(null);
       } else {
-        setSubmission(data as SubmissionData);
+        setSubmission(data as unknown as SubmissionData);
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
@@ -76,6 +86,24 @@ export default function StatusCheck() {
     const steps = ['pending', 'in_review', 'processing', 'completed'];
     return steps.indexOf(status) + 1;
   };
+
+  const isShareExpired = (expiresAt: string | null): boolean => {
+    if (!expiresAt) return true;
+    return new Date(expiresAt) < new Date();
+  };
+
+  const getTimeRemaining = (expiresAt: string | null): string => {
+    if (!expiresAt) return '';
+    const diff = new Date(expiresAt).getTime() - Date.now();
+    if (diff <= 0) return 'Expired';
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    return `${hours}h ${minutes}m remaining`;
+  };
+
+  const hasDocuments = submission?.shared_documents && 
+    submission.shared_documents.length > 0 && 
+    !isShareExpired(submission.share_expires_at);
 
   return (
     <div className="min-h-screen bg-background">
@@ -106,7 +134,7 @@ export default function StatusCheck() {
             <CardHeader className="text-center">
               <CardTitle className="font-serif text-2xl">Track Your Application</CardTitle>
               <CardDescription>
-                Enter your reference code to check the status of your career pack
+                Enter your reference code to check status and download your career pack
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -166,11 +194,11 @@ export default function StatusCheck() {
                           key={step}
                           className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
                             isCurrent ? 'bg-primary/10 border border-primary/20' : 
-                            isComplete ? 'bg-green-50' : 'bg-muted/30'
+                            isComplete ? 'bg-muted/50' : 'bg-muted/30'
                           }`}
                         >
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                            isComplete ? 'bg-green-600 text-white' :
+                            isComplete ? 'bg-primary text-primary-foreground' :
                             isCurrent ? 'bg-primary text-primary-foreground' :
                             'bg-muted text-muted-foreground'
                           }`}>
@@ -194,13 +222,68 @@ export default function StatusCheck() {
                     )}
                   </div>
 
+                  {/* Download Section */}
                   {submission.status === 'completed' && (
-                    <div className="flex justify-center">
-                      <Button className="btn-export">
-                        <FileText className="h-4 w-4 mr-2" />
-                        Download Career Pack
-                      </Button>
-                    </div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="border-t pt-6"
+                    >
+                      {hasDocuments ? (
+                        <div className="space-y-4">
+                          <div className="text-center">
+                            <h3 className="font-serif font-semibold text-lg text-foreground">
+                              Your Career Launch Pack is Ready!
+                            </h3>
+                            <div className="flex items-center justify-center gap-2 mt-1 text-sm text-muted-foreground">
+                              <Clock className="h-4 w-4" />
+                              <span>{getTimeRemaining(submission.share_expires_at)}</span>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            {submission.shared_documents!.map((doc, i) => (
+                              <motion.a
+                                key={i}
+                                href={doc.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: i * 0.1 }}
+                                className="flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors group"
+                              >
+                                <div className="p-2 rounded-md bg-primary/10 text-primary">
+                                  <FileText className="h-5 w-5" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{doc.name}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {(doc.size / 1024).toFixed(0)} KB • PDF
+                                  </p>
+                                </div>
+                                <Download className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                              </motion.a>
+                            ))}
+                          </div>
+                        </div>
+                      ) : submission.shared_documents && isShareExpired(submission.share_expires_at) ? (
+                        <div className="text-center space-y-3">
+                          <div className="w-12 h-12 rounded-full bg-destructive/10 mx-auto flex items-center justify-center">
+                            <AlertTriangle className="h-6 w-6 text-destructive" />
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Download links have expired. Please contact us for a new link.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="text-center space-y-3">
+                          <p className="text-sm text-muted-foreground">
+                            Your career pack is being prepared for download. Check back soon!
+                          </p>
+                        </div>
+                      )}
+                    </motion.div>
                   )}
                 </motion.div>
               )}

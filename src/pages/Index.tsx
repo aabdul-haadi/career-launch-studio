@@ -386,7 +386,11 @@ function AppContent() {
               </div>
 
               <TabsContent value="outputs" className="flex-1 overflow-hidden mt-0">
-                <OutputPanel />
+                <OutputPanel 
+                  submissionId={selectedSubmission?.id}
+                  referenceCode={selectedSubmission?.reference_code}
+                  studentName={selectedSubmission?.full_name}
+                />
               </TabsContent>
 
               <TabsContent value="intelligence" className="flex-1 overflow-hidden mt-0">
