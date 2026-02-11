@@ -165,7 +165,7 @@ function AppContent() {
     }
     
     try {
-      await exportBrandedCareerPack(generatedOutputs, profile.personal.fullName);
+      await exportBrandedCareerPack(generatedOutputs, profile.personal.fullName, selectedSubmission?.reference_code);
       toast.success('Career Launch Pack PDF downloaded!');
     } catch (error) {
       console.error('Export error:', error);

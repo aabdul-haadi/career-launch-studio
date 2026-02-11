@@ -73,12 +73,8 @@ export default function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState<SubmissionStatus | 'all'>('all');
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/admin/login');
-      return;
-    }
     fetchSubmissions();
-  }, [isAuthenticated, navigate]);
+  }, []);
 
   const fetchSubmissions = async () => {
     setIsLoading(true);
