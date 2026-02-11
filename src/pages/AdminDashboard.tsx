@@ -9,8 +9,19 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { 
   Pill, LogOut, Users, Clock, CheckCircle2, 
-  Eye, Play, Loader2, RefreshCw, ClipboardList 
+  Eye, Play, Loader2, RefreshCw, ClipboardList, Trash2, AlertTriangle, Database
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { SubmissionStatus, STATUS_LABELS, STATUS_COLORS } from '@/types/submission';
@@ -126,6 +137,57 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    try {
+      // Delete storage files first
+      const submission = submissions.find(s => s.id === id);
+      if (submission) {
+        await supabase.storage.from('career-packs').remove([`${id}/`]);
+      }
+
+      const { error } = await supabase
+        .from('student_submissions')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setSubmissions(prev => prev.filter(s => s.id !== id));
+      if (selectedSubmission?.id === id) setSelectedSubmission(null);
+      toast.success('Submission deleted');
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error('Failed to delete submission');
+    }
+  };
+
+  const handleClearCompleted = async () => {
+    try {
+      const completedIds = submissions.filter(s => s.status === 'completed').map(s => s.id);
+      
+      // Delete storage files
+      for (const id of completedIds) {
+        await supabase.storage.from('career-packs').remove([`${id}/`]);
+      }
+
+      const { error } = await supabase
+        .from('student_submissions')
+        .delete()
+        .in('id', completedIds);
+
+      if (error) throw error;
+
+      setSubmissions(prev => prev.filter(s => s.status !== 'completed'));
+      if (selectedSubmission && completedIds.includes(selectedSubmission.id)) {
+        setSelectedSubmission(null);
+      }
+      toast.success(`Cleared ${completedIds.length} completed submissions`);
+    } catch (error) {
+      console.error('Clear error:', error);
+      toast.error('Failed to clear completed submissions');
+    }
+  };
+
   const filteredSubmissions = statusFilter === 'all' 
     ? submissions 
     : submissions.filter(s => s.status === statusFilter);
@@ -174,6 +236,30 @@ export default function AdminDashboard() {
                 <ClipboardList className="h-4 w-4 mr-1" />
                 Get Form
               </Button>
+              {stats.completed > 0 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Clear Completed ({stats.completed})
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Clear Completed Submissions?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete {stats.completed} completed submission(s) and their uploaded files. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleClearCompleted} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        Delete All Completed
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
               <Button variant="outline" size="sm" onClick={fetchSubmissions}>
                 <RefreshCw className="h-4 w-4 mr-1" />
                 Refresh
@@ -267,9 +353,22 @@ export default function AdminDashboard() {
                                 {new Date(submission.created_at).toLocaleDateString()}
                               </p>
                             </div>
-                            <Badge className={STATUS_COLORS[submission.status]}>
-                              {STATUS_LABELS[submission.status].split(' ')[0]}
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge className={STATUS_COLORS[submission.status]}>
+                                {STATUS_LABELS[submission.status].split(' ')[0]}
+                              </Badge>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (window.confirm(`Delete ${submission.full_name}'s submission?`)) {
+                                    handleDelete(submission.id);
+                                  }
+                                }}
+                                className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           </div>
                         </button>
                       </motion.div>

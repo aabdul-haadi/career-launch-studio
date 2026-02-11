@@ -9,11 +9,12 @@ import { Badge } from '@/components/ui/badge';
 import { Pill, Search, ArrowLeft, CheckCircle2, Clock, FileText, Loader2, Download, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { SubmissionStatus, STATUS_LABELS, STATUS_COLORS } from '@/types/submission';
+import { toast } from 'sonner';
 
 interface SharedDocument {
   name: string;
   type: string;
-  url: string;
+  storagePath: string;
   size: number;
 }
 
@@ -34,6 +35,7 @@ export default function StatusCheck() {
   const [referenceCode, setReferenceCode] = useState(searchParams.get('ref') || '');
   const [submission, setSubmission] = useState<SubmissionData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [downloadingDoc, setDownloadingDoc] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -71,14 +73,46 @@ export default function StatusCheck() {
     }
   };
 
+  const handleDownload = async (doc: SharedDocument) => {
+    setDownloadingDoc(doc.name);
+    try {
+      const { data, error } = await supabase.functions.invoke('get-download-url', {
+        body: { storagePath: doc.storagePath },
+      });
+
+      if (error || !data?.signedUrl) {
+        throw new Error('Failed to get download link');
+      }
+
+      // Fetch the PDF and trigger download via blob URL to avoid blocked-by-client
+      const response = await fetch(data.signedUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = doc.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+
+      toast.success(`Downloading ${doc.name}`);
+    } catch (err) {
+      console.error('Download error:', err);
+      toast.error('Failed to download. Please try again.');
+    } finally {
+      setDownloadingDoc(null);
+    }
+  };
+
   const getStatusIcon = (status: SubmissionStatus) => {
     switch (status) {
       case 'completed':
-        return <CheckCircle2 className="h-6 w-6 text-green-600" />;
+        return <CheckCircle2 className="h-6 w-6 text-primary" />;
       case 'processing':
-        return <Loader2 className="h-6 w-6 text-purple-600 animate-spin" />;
+        return <Loader2 className="h-6 w-6 text-primary animate-spin" />;
       default:
-        return <Clock className="h-6 w-6 text-amber-600" />;
+        return <Clock className="h-6 w-6 text-muted-foreground" />;
     }
   };
 
@@ -243,15 +277,14 @@ export default function StatusCheck() {
 
                           <div className="space-y-2">
                             {submission.shared_documents!.map((doc, i) => (
-                              <motion.a
+                              <motion.button
                                 key={i}
-                                href={doc.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                                onClick={() => handleDownload(doc)}
+                                disabled={downloadingDoc === doc.name}
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: i * 0.1 }}
-                                className="flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors group"
+                                className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors group text-left"
                               >
                                 <div className="p-2 rounded-md bg-primary/10 text-primary">
                                   <FileText className="h-5 w-5" />
@@ -262,8 +295,12 @@ export default function StatusCheck() {
                                     {(doc.size / 1024).toFixed(0)} KB • PDF
                                   </p>
                                 </div>
-                                <Download className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                              </motion.a>
+                                {downloadingDoc === doc.name ? (
+                                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                ) : (
+                                  <Download className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                                )}
+                              </motion.button>
                             ))}
                           </div>
                         </div>

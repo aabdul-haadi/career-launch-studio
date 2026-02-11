@@ -5,7 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Upload, CheckCircle2, Loader2, FileText, Mail, Linkedin, MessageSquare, Clock } from 'lucide-react';
 import { GeneratedOutputs, RoleType, ROLE_DESCRIPTIONS } from '@/types/student';
-import { exportBrandedCareerPack, generateDocumentPDFBytes } from '@/utils/exportBrandedPDF';
+import { generateDocumentPDFBytes } from '@/utils/exportBrandedPDF';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
