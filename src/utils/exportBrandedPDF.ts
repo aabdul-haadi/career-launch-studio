@@ -4,22 +4,34 @@ import { GeneratedOutputs, RoleType, ROLE_DESCRIPTIONS } from '@/types/student';
 interface BrandingInfo {
   name: string;
   instagram: string;
+  instagramHandle: string;
 }
 
 const BRANDING: BrandingInfo = {
   name: 'Career Launch Pack',
   instagram: 'https://www.instagram.com/ariishaslife?igsh=MXdpczUyaDhrZmNhYQ==',
+  instagramHandle: '@ariishaslife',
+};
+
+// Professional color palette
+const COLORS = {
+  navy: [20, 30, 60] as [number, number, number],
+  teal: [20, 184, 166] as [number, number, number],
+  tealLight: [204, 251, 241] as [number, number, number],
+  amber: [245, 158, 11] as [number, number, number],
+  white: [255, 255, 255] as [number, number, number],
+  offWhite: [248, 250, 252] as [number, number, number],
+  textDark: [30, 41, 59] as [number, number, number],
+  textMuted: [100, 116, 139] as [number, number, number],
+  border: [226, 232, 240] as [number, number, number],
 };
 
 export async function exportBrandedCareerPack(
   outputs: GeneratedOutputs,
-  studentName: string
+  studentName: string,
+  referenceCode?: string
 ): Promise<void> {
-  const pdf = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-  });
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
   const margin = 15;
   const pageWidth = pdf.internal.pageSize.getWidth();
@@ -28,7 +40,7 @@ export async function exportBrandedCareerPack(
   let y = margin;
 
   const addNewPageIfNeeded = (requiredSpace: number) => {
-    if (y + requiredSpace > pageHeight - margin - 15) {
+    if (y + requiredSpace > pageHeight - margin - 18) {
       pdf.addPage();
       y = margin;
       return true;
@@ -36,128 +48,151 @@ export async function exportBrandedCareerPack(
     return false;
   };
 
-  const drawHeader = (title: string) => {
-    // Header background - teal gradient look
-    pdf.setFillColor(20, 184, 166);
-    pdf.rect(0, 0, pageWidth, 30, 'F');
-    
-    // Title
-    pdf.setTextColor(255, 255, 255);
+  const drawPageHeader = (title: string, subtitle?: string) => {
+    // Navy header bar
+    pdf.setFillColor(...COLORS.navy);
+    pdf.rect(0, 0, pageWidth, 32, 'F');
+
+    // Teal accent line
+    pdf.setFillColor(...COLORS.teal);
+    pdf.rect(0, 32, pageWidth, 1.5, 'F');
+
+    // Brand name
+    pdf.setTextColor(...COLORS.white);
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(16);
-    pdf.text(BRANDING.name, margin, 12);
-    
+    pdf.setFontSize(14);
+    pdf.text(BRANDING.name, margin, 13);
+
+    // Title
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
-    pdf.text(title, margin, 20);
-    
+    pdf.text(title, margin, 21);
+
+    // Student name + ref
     pdf.setFontSize(8);
-    pdf.text(studentName, margin, 26);
-    
-    y = 40;
-    pdf.setTextColor(0, 0, 0);
+    pdf.setTextColor(200, 210, 230);
+    const refText = referenceCode ? `${studentName} • ${referenceCode}` : studentName;
+    pdf.text(refText, margin, 28);
+
+    // Amber accent dot
+    pdf.setFillColor(...COLORS.amber);
+    pdf.circle(pageWidth - margin, 16, 3, 'F');
+
+    y = 42;
+    pdf.setTextColor(...COLORS.textDark);
   };
 
   const drawSectionHeader = (title: string) => {
-    addNewPageIfNeeded(15);
-    pdf.setFillColor(240, 253, 250);
-    pdf.roundedRect(margin, y, contentWidth, 8, 2, 2, 'F');
+    addNewPageIfNeeded(14);
+    // Teal left accent bar + light background
+    pdf.setFillColor(...COLORS.tealLight);
+    pdf.roundedRect(margin, y, contentWidth, 9, 1.5, 1.5, 'F');
+    pdf.setFillColor(...COLORS.teal);
+    pdf.rect(margin, y, 2.5, 9, 'F');
+
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(11);
-    pdf.setTextColor(20, 184, 166);
-    pdf.text(title, margin + 4, y + 5.5);
-    pdf.setTextColor(0, 0, 0);
-    y += 12;
+    pdf.setFontSize(10.5);
+    pdf.setTextColor(...COLORS.navy);
+    pdf.text(title.toUpperCase(), margin + 6, y + 6);
+    pdf.setTextColor(...COLORS.textDark);
+    y += 13;
   };
 
-  const drawText = (text: string, options?: { bold?: boolean; size?: number; indent?: number }) => {
-    const { bold = false, size = 10, indent = 0 } = options || {};
+  const drawText = (text: string, options?: { bold?: boolean; size?: number; indent?: number; color?: [number, number, number] }) => {
+    const { bold = false, size = 10, indent = 0, color = COLORS.textDark } = options || {};
     pdf.setFont('helvetica', bold ? 'bold' : 'normal');
     pdf.setFontSize(size);
+    pdf.setTextColor(...color);
     const lines = pdf.splitTextToSize(text, contentWidth - indent);
     for (const line of lines) {
       addNewPageIfNeeded(5);
       pdf.text(line, margin + indent, y);
-      y += 5;
+      y += 4.8;
     }
+    pdf.setTextColor(...COLORS.textDark);
+  };
+
+  const drawDivider = () => {
+    y += 2;
+    pdf.setDrawColor(...COLORS.border);
+    pdf.setLineWidth(0.3);
+    pdf.line(margin, y, pageWidth - margin, y);
+    y += 4;
   };
 
   const addFooter = () => {
     const totalPages = pdf.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       pdf.setPage(i);
-      
-      // Footer background
-      pdf.setFillColor(248, 250, 252);
-      pdf.rect(0, pageHeight - 12, pageWidth, 12, 'F');
-      
+
+      // Footer bg
+      pdf.setFillColor(...COLORS.offWhite);
+      pdf.rect(0, pageHeight - 14, pageWidth, 14, 'F');
+      pdf.setDrawColor(...COLORS.border);
+      pdf.setLineWidth(0.3);
+      pdf.line(0, pageHeight - 14, pageWidth, pageHeight - 14);
+
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(...COLORS.navy);
+      pdf.text(BRANDING.name, margin, pageHeight - 6);
+
       pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(8);
-      pdf.setTextColor(100, 116, 139);
-      
-      // Branding
-      pdf.text(BRANDING.name, margin, pageHeight - 5);
-      
-      // Instagram
-      pdf.setTextColor(20, 184, 166);
-      pdf.textWithLink('@ariishaslife', pageWidth / 2, pageHeight - 5, {
-        url: BRANDING.instagram,
-      });
-      pdf.setTextColor(100, 116, 139);
-      
-      // Page number
-      pdf.text(`Page ${i} of ${totalPages}`, pageWidth - margin - 20, pageHeight - 5);
+      pdf.setTextColor(...COLORS.teal);
+      pdf.textWithLink(BRANDING.instagramHandle, pageWidth / 2 - 8, pageHeight - 6, { url: BRANDING.instagram });
+
+      pdf.setTextColor(...COLORS.textMuted);
+      pdf.text(`Page ${i} of ${totalPages}`, pageWidth - margin - 18, pageHeight - 6);
     }
   };
 
   // === PAGE 1: CV ===
-  drawHeader('Curriculum Vitae');
+  drawPageHeader('Curriculum Vitae');
   const cvLines = outputs.cv.split('\n');
   for (const line of cvLines) {
     const trimmed = line.trim();
-    if (!trimmed) {
-      y += 3;
-      continue;
-    }
-    if (trimmed.includes('===') || trimmed.includes('---')) continue;
-    
-    const isHeader = trimmed === trimmed.toUpperCase() && trimmed.length < 60;
+    if (!trimmed) { y += 2.5; continue; }
+    if (trimmed.includes('===') || trimmed.includes('---')) { drawDivider(); continue; }
+
+    const isHeader = trimmed === trimmed.toUpperCase() && trimmed.length < 60 && trimmed.length > 2;
     if (isHeader) {
-      y += 3;
-      drawText(trimmed, { bold: true, size: 11 });
+      y += 2;
+      drawSectionHeader(trimmed);
+    } else if (trimmed.startsWith('•') || trimmed.startsWith('-')) {
+      drawText(trimmed, { size: 9.5, indent: 4 });
     } else {
-      drawText(trimmed, { size: 10 });
+      drawText(trimmed, { size: 9.5 });
     }
   }
 
-  // === PAGE 2+: LinkedIn Profile ===
+  // === LinkedIn Profile ===
   pdf.addPage();
   y = margin;
-  drawHeader('LinkedIn Optimization');
-  
+  drawPageHeader('LinkedIn Optimization');
+
   drawSectionHeader('Headline');
   drawText(outputs.linkedin.headline);
-  y += 5;
-  
+  y += 4;
+
   drawSectionHeader('About Section');
   drawText(outputs.linkedin.about);
-  y += 5;
-  
+  y += 4;
+
   if (outputs.linkedin.experienceBullets?.length > 0) {
     drawSectionHeader('Experience Highlights');
-    outputs.linkedin.experienceBullets.forEach((bullet) => {
-      drawText(`• ${bullet}`, { indent: 4 });
+    outputs.linkedin.experienceBullets.forEach(bullet => {
+      drawText(`• ${bullet}`, { indent: 4, size: 9.5 });
     });
   }
-  y += 5;
-  
+  y += 4;
+
   if (outputs.linkedin.skills?.length > 0) {
     drawSectionHeader('Recommended Skills');
-    drawText(outputs.linkedin.skills.join(' | '));
+    drawText(outputs.linkedin.skills.join('  •  '), { size: 9.5 });
   }
-  
+
   if (outputs.linkedin.networkingMessage) {
-    y += 5;
+    y += 4;
     drawSectionHeader('Networking Message');
     drawText(outputs.linkedin.networkingMessage);
   }
@@ -166,15 +201,12 @@ export async function exportBrandedCareerPack(
   outputs.coverLetters.forEach(({ role, content }) => {
     pdf.addPage();
     y = margin;
-    drawHeader(`Cover Letter - ${ROLE_DESCRIPTIONS[role]}`);
-    
+    drawPageHeader(`Cover Letter — ${ROLE_DESCRIPTIONS[role]}`);
+
     const letterLines = content.split('\n');
     for (const line of letterLines) {
-      if (!line.trim()) {
-        y += 3;
-        continue;
-      }
-      drawText(line);
+      if (!line.trim()) { y += 3; continue; }
+      drawText(line, { size: 9.5 });
     }
   });
 
@@ -182,46 +214,48 @@ export async function exportBrandedCareerPack(
   outputs.interviewPrep.forEach(({ role, behavioral, technical, tellMeAboutYourself, questionsToAsk }) => {
     pdf.addPage();
     y = margin;
-    drawHeader(`Interview Preparation - ${ROLE_DESCRIPTIONS[role]}`);
-    
+    drawPageHeader(`Interview Preparation — ${ROLE_DESCRIPTIONS[role]}`);
+
     drawSectionHeader('"Tell Me About Yourself"');
-    drawText('Short Version:', { bold: true });
-    drawText(tellMeAboutYourself.short);
+    drawText('Short Version:', { bold: true, size: 9.5 });
+    drawText(tellMeAboutYourself.short, { size: 9.5 });
     y += 3;
-    drawText('Extended Version:', { bold: true });
-    drawText(tellMeAboutYourself.long);
-    y += 5;
-    
+    drawText('Extended Version:', { bold: true, size: 9.5 });
+    drawText(tellMeAboutYourself.long, { size: 9.5 });
+    y += 4;
+
     if (behavioral?.length > 0) {
       drawSectionHeader('Behavioral Questions');
       behavioral.slice(0, 4).forEach((qa, idx) => {
-        addNewPageIfNeeded(25);
-        drawText(`Q${idx + 1}: ${qa.question}`, { bold: true });
-        drawText(qa.answer, { indent: 4 });
+        addNewPageIfNeeded(20);
+        drawText(`Q${idx + 1}: ${qa.question}`, { bold: true, size: 9.5 });
+        drawText(qa.answer, { indent: 4, size: 9, color: COLORS.textMuted });
         y += 3;
       });
     }
-    
+
     if (technical?.length > 0) {
       drawSectionHeader('Technical Questions');
       technical.slice(0, 4).forEach((qa, idx) => {
-        addNewPageIfNeeded(25);
-        drawText(`Q${idx + 1}: ${qa.question}`, { bold: true });
-        drawText(qa.answer, { indent: 4 });
+        addNewPageIfNeeded(20);
+        drawText(`Q${idx + 1}: ${qa.question}`, { bold: true, size: 9.5 });
+        drawText(qa.answer, { indent: 4, size: 9, color: COLORS.textMuted });
         y += 3;
       });
     }
-    
+
     if (questionsToAsk?.length > 0) {
       drawSectionHeader('Questions to Ask the Interviewer');
-      questionsToAsk.forEach((q) => {
-        drawText(`• ${q}`, { indent: 4 });
+      questionsToAsk.forEach(q => {
+        drawText(`• ${q}`, { indent: 4, size: 9.5 });
       });
     }
   });
 
-  // Add footer to all pages
   addFooter();
 
-  pdf.save(`Career_Launch_Pack_${studentName.replace(/\s+/g, '_')}.pdf`);
+  const filename = referenceCode
+    ? `Career_Launch_Pack_${studentName.replace(/\s+/g, '_')}_${referenceCode}.pdf`
+    : `Career_Launch_Pack_${studentName.replace(/\s+/g, '_')}.pdf`;
+  pdf.save(filename);
 }
