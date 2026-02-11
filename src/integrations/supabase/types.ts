@@ -62,6 +62,9 @@ export type Database = {
           processed_at: string | null
           reference_code: string
           selected_roles: Json | null
+          share_expires_at: string | null
+          shared_at: string | null
+          shared_documents: Json | null
           soft_skills: Json | null
           status: Database["public"]["Enums"]["submission_status"]
           technical_skills: Json | null
@@ -94,6 +97,9 @@ export type Database = {
           processed_at?: string | null
           reference_code?: string
           selected_roles?: Json | null
+          share_expires_at?: string | null
+          shared_at?: string | null
+          shared_documents?: Json | null
           soft_skills?: Json | null
           status?: Database["public"]["Enums"]["submission_status"]
           technical_skills?: Json | null
@@ -126,6 +132,9 @@ export type Database = {
           processed_at?: string | null
           reference_code?: string
           selected_roles?: Json | null
+          share_expires_at?: string | null
+          shared_at?: string | null
+          shared_documents?: Json | null
           soft_skills?: Json | null
           status?: Database["public"]["Enums"]["submission_status"]
           technical_skills?: Json | null
