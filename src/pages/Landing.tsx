@@ -3,7 +3,7 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, Brain, Sparkles, ArrowRight, CheckCircle2, Search, Linkedin, MessageSquare, Mail, Rocket, Shield, Zap } from 'lucide-react';
-import heroImage from '@/assets/hero-pharmacy.jpg';
+import heroImage from '@/assets/hero-pharmacist.jpg';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
@@ -83,18 +83,21 @@ export default function Landing() {
       <header className="relative pt-16 min-h-[90vh] flex items-center overflow-hidden">
         <motion.div
           style={{ scale: heroScale, opacity: heroOpacity }}
-          className="absolute inset-0"
+          className="absolute inset-0 hidden md:block"
         >
           <img
             src={heroImage}
-            alt="Pharmacy graduate launching career"
+            alt="Creative pharmacist launching career"
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-[hsl(222,47%,11%)/0.85] via-[hsl(222,47%,11%)/0.7] to-transparent" />
         </motion.div>
 
+        {/* Mobile: solid bg */}
+        <div className="absolute inset-0 md:hidden bg-gradient-to-b from-[hsl(222,47%,11%)] to-[hsl(222,47%,18%)]" />
+
         <div className="relative z-10 container mx-auto px-4 py-20">
-          <div className="max-w-2xl">
+          <div className="max-w-2xl mx-auto md:mx-0">
             <motion.div initial="hidden" animate="visible" variants={stagger}>
               <motion.div custom={0} variants={fadeUp}>
                 <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[hsl(174,63%,40%)/0.2] border border-[hsl(174,63%,40%)/0.3] text-[hsl(174,63%,90%)] text-sm font-medium mb-6">
@@ -102,14 +105,24 @@ export default function Landing() {
                   AI-Powered Career Intelligence
                 </span>
               </motion.div>
-              <motion.h1 custom={1} variants={fadeUp} className="font-serif text-4xl sm:text-5xl md:text-6xl font-bold text-white leading-tight mb-6">
+              <motion.h1 custom={1} variants={fadeUp} className="font-serif text-4xl sm:text-5xl md:text-6xl font-bold text-white leading-tight mb-6 text-center md:text-left">
                 Launch Your
                 <span className="block text-[hsl(174,63%,50%)]">Pharmacy Career</span>
               </motion.h1>
-              <motion.p custom={2} variants={fadeUp} className="text-lg text-white/70 mb-8 max-w-lg">
+              <motion.p custom={2} variants={fadeUp} className="text-lg text-white/70 mb-8 max-w-lg text-center md:text-left mx-auto md:mx-0">
                 Get your complete career pack — professional CV, cover letters, LinkedIn optimization, and interview prep — all tailored to your pharmacy profile.
               </motion.p>
-              <motion.div custom={3} variants={fadeUp} className="flex flex-col sm:flex-row gap-3">
+
+              {/* Mobile hero image — between text and CTA */}
+              <motion.div custom={2.5} variants={fadeUp} className="md:hidden mb-8 rounded-2xl overflow-hidden mx-auto max-w-sm">
+                <img
+                  src={heroImage}
+                  alt="Creative pharmacist launching career"
+                  className="w-full h-48 object-cover rounded-2xl"
+                />
+              </motion.div>
+
+              <motion.div custom={3} variants={fadeUp} className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
                 <Link to="/apply">
                   <Button size="lg" className="btn-generate text-base px-8 w-full sm:w-auto">
                     Start Your Application
@@ -131,7 +144,7 @@ export default function Landing() {
         <motion.div
           animate={{ y: [0, 8, 0] }}
           transition={{ repeat: Infinity, duration: 2 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10"
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 hidden md:flex"
         >
           <div className="w-6 h-10 rounded-full border-2 border-white/30 flex justify-center pt-2">
             <div className="w-1.5 h-3 rounded-full bg-white/50" />
