@@ -8,51 +8,206 @@ export async function exportToPDF(content: string, filename: string): Promise<vo
     format: 'a4',
   });
 
-  const margin = 20;
+  // Professional color palette
+  const COLORS = {
+    navy: [20, 30, 60] as [number, number, number],
+    teal: [20, 184, 166] as [number, number, number],
+    tealLight: [204, 251, 241] as [number, number, number],
+    white: [255, 255, 255] as [number, number, number],
+    textDark: [30, 41, 59] as [number, number, number],
+    textMuted: [100, 116, 139] as [number, number, number],
+    border: [226, 232, 240] as [number, number, number],
+  };
+
+  const margin = 15;
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
-  const maxWidth = pageWidth - margin * 2;
-  const lineHeight = 6;
+  const contentWidth = pageWidth - margin * 2;
   let y = margin;
 
-  // Set font
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(11);
+  const addNewPageIfNeeded = (requiredSpace: number) => {
+    if (y + requiredSpace > pageHeight - margin - 15) {
+      pdf.addPage();
+      y = margin;
+      return true;
+    }
+    return false;
+  };
 
-  // Split content into lines
+  // Parse CV content to extract header info
   const lines = content.split('\n');
+  let name = '';
+  let contactInfo: string[] = [];
+  let isHeaderSection = true;
+  const sections: { title: string; content: string[] }[] = [];
+  let currentSection: { title: string; content: string[] } | null = null;
 
   for (const line of lines) {
-    // Check for headers (lines that are all caps or have specific patterns)
-    const isHeader = line === line.toUpperCase() && line.trim().length > 0 && !line.startsWith('•');
-    const isSectionHeader = line.includes('===') || line.includes('---');
+    const trimmed = line.trim();
+    if (!trimmed) continue;
 
-    if (isSectionHeader) {
-      y += 3;
-      continue;
-    }
-
-    if (isHeader && line.trim()) {
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(12);
+    if (isHeaderSection) {
+      // First non-empty line is typically the name
+      if (!name) {
+        name = trimmed;
+      } else if (trimmed.includes('@') || trimmed.includes('|') || /\d/.test(trimmed)) {
+        // Contact info line
+        contactInfo.push(trimmed);
+      } else if (trimmed === trimmed.toUpperCase() && trimmed.length > 2 && !trimmed.startsWith('•')) {
+        // Start of first section
+        isHeaderSection = false;
+        currentSection = { title: trimmed, content: [] };
+      }
     } else {
-      pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(11);
+      // Check if this is a new section header
+      if (trimmed === trimmed.toUpperCase() && trimmed.length > 2 && !trimmed.startsWith('•') && !trimmed.match(/^\d/)) {
+        if (currentSection && currentSection.content.length > 0) {
+          sections.push(currentSection);
+        }
+        currentSection = { title: trimmed, content: [] };
+      } else if (currentSection) {
+        currentSection.content.push(trimmed);
+      }
     }
+  }
+  if (currentSection && currentSection.content.length > 0) {
+    sections.push(currentSection);
+  }
 
-    // Word wrap
-    const splitLines = pdf.splitTextToSize(line || ' ', maxWidth);
+  // === DRAW HEADER ===
+  // Navy header bar
+  pdf.setFillColor(...COLORS.navy);
+  pdf.rect(0, 0, pageWidth, 35, 'F');
 
-    for (const splitLine of splitLines) {
-      // Check if we need a new page
-      if (y + lineHeight > pageHeight - margin) {
-        pdf.addPage();
-        y = margin;
+  // Name - prominently displayed
+  pdf.setTextColor(...COLORS.white);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(22);
+  pdf.text(name || 'Professional CV', margin, 16);
+
+  // Contact info
+  if (contactInfo.length > 0) {
+    const contactText = contactInfo.join('  |  ').replace(/\|/g, '•');
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(9);
+    pdf.setTextColor(220, 220, 220);
+    pdf.text(contactText, margin, 25);
+  }
+
+  // Subtitle
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(8);
+  pdf.setTextColor(200, 210, 230);
+  pdf.text('Curriculum Vitae', margin, 32);
+
+  y = 45;
+  pdf.setTextColor(...COLORS.textDark);
+
+  // === DRAW SECTIONS ===
+  const drawSectionHeader = (title: string) => {
+    addNewPageIfNeeded(14);
+    
+    // Centered section header without left border or background
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(12);
+    pdf.setTextColor(...COLORS.navy);
+    
+    // Calculate text width for centering
+    const textWidth = pdf.getStringUnitWidth(title.toUpperCase()) * 12 / pdf.internal.scaleFactor;
+    const centerX = (pageWidth - textWidth) / 2;
+    
+    pdf.text(title.toUpperCase(), centerX, y + 5);
+    
+    // Add subtle underline
+    pdf.setDrawColor(...COLORS.teal);
+    pdf.setLineWidth(0.3);
+    pdf.line(centerX - 5, y + 6, centerX + textWidth + 5, y + 6);
+    
+    pdf.setTextColor(...COLORS.textDark);
+    y += 12;
+  };
+
+  const drawText = (text: string, options?: { bold?: boolean; size?: number; indent?: number; color?: [number, number, number] }) => {
+    const { bold = false, size = 10, indent = 0, color = COLORS.textDark } = options || {};
+    pdf.setFont('helvetica', bold ? 'bold' : 'normal');
+    pdf.setFontSize(size);
+    pdf.setTextColor(...color);
+    const textLines = pdf.splitTextToSize(text, contentWidth - indent);
+    for (const line of textLines) {
+      addNewPageIfNeeded(5);
+      pdf.text(line, margin + indent, y);
+      y += 5;
+    }
+    pdf.setTextColor(...COLORS.textDark);
+  };
+
+  const drawDivider = () => {
+    y += 2;
+    pdf.setDrawColor(...COLORS.border);
+    pdf.setLineWidth(0.3);
+    pdf.line(margin, y, pageWidth - margin, y);
+    y += 5;
+  };
+
+  // Render each section
+  for (const section of sections) {
+    drawSectionHeader(section.title);
+
+    for (const line of section.content) {
+      // Check for separator lines
+      if (line.includes('===') || line.includes('---')) {
+        drawDivider();
+        continue;
       }
 
-      pdf.text(splitLine, margin, y);
-      y += lineHeight;
+      // Check if it's a bullet point
+      if (line.startsWith('•') || line.startsWith('-')) {
+        const bulletText = line.replace(/^[•-]\s*/, '');
+        
+        // Check if line contains position|date format
+        if (bulletText.includes('|')) {
+          const parts = bulletText.split('|').map(p => p.trim());
+          drawText(parts[0], { bold: true, size: 10 });
+          if (parts[1]) {
+            pdf.setTextColor(...COLORS.textMuted);
+            drawText(parts[1], { size: 9, indent: 2 });
+            pdf.setTextColor(...COLORS.textDark);
+          }
+        } else {
+          // Regular bullet point with smaller, lighter teal dot
+          pdf.setFillColor(...COLORS.teal);
+          pdf.setGState(new pdf.GState({ opacity: 0.7 }));
+          pdf.circle(margin + 2, y - 2, 0.8, 'F');
+          pdf.setGState(new pdf.GState({ opacity: 1 }));
+          drawText(bulletText, { indent: 6, size: 10 });
+        }
+      } else if (line.includes('|')) {
+        // Handle position|date format without bullet
+        const parts = line.split('|').map(p => p.trim());
+        drawText(parts[0], { bold: true, size: 10 });
+        if (parts[1]) {
+          pdf.setTextColor(...COLORS.textMuted);
+          drawText(parts[1], { size: 9, indent: 2 });
+          pdf.setTextColor(...COLORS.textDark);
+        }
+      } else {
+        // Regular text
+        drawText(line, { size: 10 });
+      }
     }
+    y += 3;
+  }
+
+  // === DRAW FOOTER ===
+  const totalPages = pdf.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    pdf.setPage(i);
+    
+    // Simple footer with just page numbers
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8);
+    pdf.setTextColor(...COLORS.textMuted);
+    pdf.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 5);
   }
 
   pdf.save(`${filename}.pdf`);
@@ -87,6 +242,7 @@ export async function exportToDOCX(content: string, filename: string): Promise<v
               size: 26, // 13pt
             }),
           ],
+          alignment: 'center',
           spacing: { before: 240, after: 120 },
         })
       );
@@ -298,7 +454,9 @@ export async function exportCareerPathwayToPDF(
   analysis.profileAssessment.keyStrengths.slice(0, 5).forEach((strength) => {
     addNewPageIfNeeded(6);
     pdf.setFillColor(34, 197, 94);
-    pdf.circle(margin + 4, y - 1.5, 1.5, 'F');
+    pdf.setGState(new pdf.GState({ opacity: 0.8 }));
+    pdf.circle(margin + 4, y - 1.5, 1.2, 'F');
+    pdf.setGState(new pdf.GState({ opacity: 1 }));
     drawText(strength, { indent: 10 });
   });
   y += 5;
@@ -307,7 +465,9 @@ export async function exportCareerPathwayToPDF(
   analysis.profileAssessment.developmentAreas.slice(0, 5).forEach((area) => {
     addNewPageIfNeeded(6);
     pdf.setFillColor(251, 191, 36);
-    pdf.circle(margin + 4, y - 1.5, 1.5, 'F');
+    pdf.setGState(new pdf.GState({ opacity: 0.8 }));
+    pdf.circle(margin + 4, y - 1.5, 1.2, 'F');
+    pdf.setGState(new pdf.GState({ opacity: 1 }));
     drawText(area, { indent: 10 });
   });
   y += 5;
@@ -428,19 +588,14 @@ export async function exportCareerPathwayToPDF(
     y += 8;
   });
 
-  // Footer
+  // Simple footer with just page numbers
   const totalPages = pdf.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     pdf.setPage(i);
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(8);
     pdf.setTextColor(150, 150, 150);
-    pdf.text(
-      `Career Pathway Analysis | Page ${i} of ${totalPages}`,
-      pageWidth / 2,
-      pageHeight - 8,
-      { align: 'center' }
-    );
+    pdf.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 8);
   }
 
   pdf.save(`Career_Pathway_${candidateName?.replace(/\s+/g, '_') || 'Analysis'}.pdf`);

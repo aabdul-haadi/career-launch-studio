@@ -651,34 +651,50 @@ export default function StudentForm() {
     <div className="min-h-screen bg-background flex">
       {/* Main Form Area */}
       <div className={`flex-1 transition-all duration-300 ${showAICoach ? 'lg:pr-[400px]' : ''}`}>
-        <header className="border-b border-border bg-card sticky top-0 z-10">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Link to="/">
-                  <Button variant="ghost" size="icon">
-                    <ArrowLeft className="h-5 w-5" />
-                  </Button>
-                </Link>
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-primary">
-                    <Pill className="h-5 w-5 text-primary-foreground" />
-                  </div>
-                  <span className="font-serif text-lg font-bold">Career Launch Pack</span>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAICoach(!showAICoach)}
-                className="lg:hidden"
-              >
-                <MessageCircle className="h-4 w-4 mr-2" />
-                AI Coach
-              </Button>
-            </div>
+        <header className="sticky top-0 z-50 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md">
+  <div className="container mx-auto px-4 py-3">
+    <div className="flex items-center justify-between">
+      {/* Left side - Back button + Logo */}
+      <div className="flex items-center gap-3">
+        <Link to="/">
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+          </motion.div>
+        </Link>
+
+        <Link to="/" className="flex items-center gap-2.5">
+          <div className="relative">
+            <img 
+              src="/career-icon.png" 
+              alt="Career Launch Pack" 
+              className="h-7 w-7 object-contain"
+            />
+            <div className="absolute -inset-0.5 bg-primary/20 rounded-full blur-sm -z-10" />
           </div>
-        </header>
+          <span className="font-serif text-base font-semibold text-gray-900 dark:text-gray-100">
+            Career Pack
+          </span>
+        </Link>
+      </div>
+
+      {/* Right side - AI Coach button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setShowAICoach(!showAICoach)}
+        className="gap-1.5 rounded-lg bg-primary/5 hover:bg-primary/10 text-primary text-sm px-3 py-1.5 h-auto"
+      >
+        <MessageCircle className="h-3.5 w-3.5" />
+        <span className="hidden xs:inline">AI Coach</span>AI Coach
+        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+      </Button>
+    </div>
+  </div>
+</header>
 
         <main className="container mx-auto px-4 py-8 max-w-3xl">
           {/* Progress */}
