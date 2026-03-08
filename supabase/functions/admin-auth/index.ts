@@ -1,5 +1,4 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,20 +25,26 @@ Deno.serve(async (req) => {
     const { action, username, password } = await req.json();
 
     if (action === 'login') {
-      const supabase = createClient(supabaseUrl, supabaseKey);
+      // Use direct REST API to avoid PostgREST schema cache issues
+      const restUrl = `${supabaseUrl}/rest/v1/admins?username=eq.${encodeURIComponent(username)}&select=*`;
+      const restResponse = await fetch(restUrl, {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
-      const { data: admins, error } = await supabase
-        .from('admins')
-        .select('*')
-        .eq('username', username);
-
-      if (error) {
-        console.error('DB query error:', error.message);
+      if (!restResponse.ok) {
+        const errText = await restResponse.text();
+        console.error('REST query error:', restResponse.status, errText);
         return new Response(
           JSON.stringify({ success: false, error: 'Database error' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         );
       }
+
+      const admins = await restResponse.json();
 
       if (!admins || admins.length === 0) {
         return new Response(
