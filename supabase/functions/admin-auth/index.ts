@@ -1,8 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 Deno.serve(async (req) => {
@@ -11,24 +12,36 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Missing env vars:', { hasUrl: !!supabaseUrl, hasKey: !!supabaseKey });
+      return new Response(
+        JSON.stringify({ success: false, error: 'Server configuration error' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+
     const { action, username, password } = await req.json();
 
     if (action === 'login') {
-      // Simple auth check against the admins table
-      // In production, use proper password hashing
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-      
-      const response = await fetch(`${supabaseUrl}/rest/v1/admins?username=eq.${encodeURIComponent(username)}&select=*`, {
-        headers: {
-          'Authorization': `Bearer ${supabaseKey}`,
-          'apikey': supabaseKey,
-        },
-      });
+      const supabase = createClient(supabaseUrl, supabaseKey);
 
-      const admins = await response.json();
-      
-      if (admins.length === 0) {
+      const { data: admins, error } = await supabase
+        .from('admins')
+        .select('*')
+        .eq('username', username);
+
+      if (error) {
+        console.error('DB query error:', error.message);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Database error' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+
+      if (!admins || admins.length === 0) {
         return new Response(
           JSON.stringify({ success: false, error: 'Invalid credentials' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
@@ -36,8 +49,7 @@ Deno.serve(async (req) => {
       }
 
       const admin = admins[0];
-      
-      // Simple password check (in production, use bcrypt)
+
       if (admin.password_hash !== password) {
         return new Response(
           JSON.stringify({ success: false, error: 'Invalid credentials' }),
@@ -45,7 +57,6 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Generate a simple session token
       const token = crypto.randomUUID();
 
       return new Response(

@@ -176,9 +176,8 @@ export async function exportToPDF(content: string, filename: string): Promise<vo
         } else {
           // Regular bullet point with smaller, lighter teal dot
           pdf.setFillColor(...COLORS.teal);
-          pdf.setGState(new pdf.GState({ opacity: 0.7 }));
+          pdf.setFillColor(...COLORS.teal);
           pdf.circle(margin + 2, y - 2, 0.8, 'F');
-          pdf.setGState(new pdf.GState({ opacity: 1 }));
           drawText(bulletText, { indent: 6, size: 10 });
         }
       } else if (line.includes('|')) {
