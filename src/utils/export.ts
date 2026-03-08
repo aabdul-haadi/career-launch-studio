@@ -453,9 +453,7 @@ export async function exportCareerPathwayToPDF(
   analysis.profileAssessment.keyStrengths.slice(0, 5).forEach((strength) => {
     addNewPageIfNeeded(6);
     pdf.setFillColor(34, 197, 94);
-    pdf.setGState(new pdf.GState({ opacity: 0.8 }));
     pdf.circle(margin + 4, y - 1.5, 1.2, 'F');
-    pdf.setGState(new pdf.GState({ opacity: 1 }));
     drawText(strength, { indent: 10 });
   });
   y += 5;
@@ -464,9 +462,7 @@ export async function exportCareerPathwayToPDF(
   analysis.profileAssessment.developmentAreas.slice(0, 5).forEach((area) => {
     addNewPageIfNeeded(6);
     pdf.setFillColor(251, 191, 36);
-    pdf.setGState(new pdf.GState({ opacity: 0.8 }));
     pdf.circle(margin + 4, y - 1.5, 1.2, 'F');
-    pdf.setGState(new pdf.GState({ opacity: 1 }));
     drawText(area, { indent: 10 });
   });
   y += 5;
