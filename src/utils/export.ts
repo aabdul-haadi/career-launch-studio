@@ -176,9 +176,8 @@ export async function exportToPDF(content: string, filename: string): Promise<vo
         } else {
           // Regular bullet point with smaller, lighter teal dot
           pdf.setFillColor(...COLORS.teal);
-          pdf.setGState(new pdf.GState({ opacity: 0.7 }));
+          pdf.setFillColor(...COLORS.teal);
           pdf.circle(margin + 2, y - 2, 0.8, 'F');
-          pdf.setGState(new pdf.GState({ opacity: 1 }));
           drawText(bulletText, { indent: 6, size: 10 });
         }
       } else if (line.includes('|')) {
@@ -454,9 +453,7 @@ export async function exportCareerPathwayToPDF(
   analysis.profileAssessment.keyStrengths.slice(0, 5).forEach((strength) => {
     addNewPageIfNeeded(6);
     pdf.setFillColor(34, 197, 94);
-    pdf.setGState(new pdf.GState({ opacity: 0.8 }));
     pdf.circle(margin + 4, y - 1.5, 1.2, 'F');
-    pdf.setGState(new pdf.GState({ opacity: 1 }));
     drawText(strength, { indent: 10 });
   });
   y += 5;
@@ -465,9 +462,7 @@ export async function exportCareerPathwayToPDF(
   analysis.profileAssessment.developmentAreas.slice(0, 5).forEach((area) => {
     addNewPageIfNeeded(6);
     pdf.setFillColor(251, 191, 36);
-    pdf.setGState(new pdf.GState({ opacity: 0.8 }));
     pdf.circle(margin + 4, y - 1.5, 1.2, 'F');
-    pdf.setGState(new pdf.GState({ opacity: 1 }));
     drawText(area, { indent: 10 });
   });
   y += 5;
