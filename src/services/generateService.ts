@@ -5,107 +5,64 @@ interface GenerationCallbacks {
   onProgress: (step: string, progress: number) => void;
 }
 
+function parseJson<T>(content: string, fallback: T): T {
+  try {
+    const m = content.match(/\{[\s\S]*\}/);
+    return JSON.parse(m ? m[0] : content);
+  } catch {
+    return fallback;
+  }
+}
+
+async function invoke(body: Record<string, unknown>, label: string, attempt = 0): Promise<string> {
+  const res = await supabase.functions.invoke('generate-content', { body });
+  if (res.error || !res.data?.content) {
+    if (attempt < 1) return invoke(body, label, attempt + 1); // one quick retry
+    throw new Error(res.error?.message || `Failed to generate ${label}`);
+  }
+  return res.data.content as string;
+}
+
 export async function generateCareerPack(
   profile: StudentProfile,
   callbacks: GenerationCallbacks
 ): Promise<GeneratedOutputs> {
   const { onProgress } = callbacks;
-  const { selectedRoles, jobDescription } = profile;
+  const { jobDescription } = profile;
+  const selectedRoles: RoleType[] = profile.selectedRoles?.length ? profile.selectedRoles : (['hospital'] as RoleType[]);
 
-  // Step 1: Generate CV
-  onProgress('Generating your CV...', 10);
-  const cvResponse = await supabase.functions.invoke('generate-content', {
-    body: { type: 'cv', profile, role: selectedRoles[0], jobDescription },
-  });
-  
-  if (cvResponse.error) {
-    throw new Error(cvResponse.error.message || 'Failed to generate CV');
-  }
-  const cv = cvResponse.data.content;
-
-  // Step 2: Generate LinkedIn
-  onProgress('Optimizing LinkedIn profile...', 30);
-  const linkedinResponse = await supabase.functions.invoke('generate-content', {
-    body: { type: 'linkedin', profile, role: selectedRoles[0] },
-  });
-  
-  if (linkedinResponse.error) {
-    throw new Error(linkedinResponse.error.message || 'Failed to generate LinkedIn content');
-  }
-  
-  let linkedin;
-  try {
-    const content = linkedinResponse.data.content;
-    // Extract JSON from response (might be wrapped in markdown code blocks)
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    linkedin = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content);
-  } catch (e) {
-    // Fallback if JSON parsing fails
-    linkedin = {
-      headline: 'Pharmacy Professional | Patient Care Advocate',
-      about: linkedinResponse.data.content,
-      experienceBullets: [],
-      skills: [],
-      networkingMessage: '',
-      openToWork: '',
-    };
-  }
-
-  // Step 3: Generate Cover Letters for each role
-  const coverLetters: { role: RoleType; content: string }[] = [];
-  for (let i = 0; i < selectedRoles.length; i++) {
-    const role = selectedRoles[i];
-    onProgress(`Crafting cover letter for ${role} role...`, 50 + (i * 10));
-    
-    const coverResponse = await supabase.functions.invoke('generate-content', {
-      body: { type: 'coverLetter', profile, role, jobDescription },
-    });
-    
-    if (coverResponse.error) {
-      throw new Error(coverResponse.error.message || `Failed to generate cover letter for ${role}`);
-    }
-    
-    coverLetters.push({ role, content: coverResponse.data.content });
-  }
-
-  // Step 4: Generate Interview Prep for each role
-  const interviewPrep: GeneratedOutputs['interviewPrep'] = [];
-  for (let i = 0; i < selectedRoles.length; i++) {
-    const role = selectedRoles[i];
-    onProgress(`Preparing interview guide for ${role} role...`, 70 + (i * 10));
-    
-    const interviewResponse = await supabase.functions.invoke('generate-content', {
-      body: { type: 'interview', profile, role },
-    });
-    
-    if (interviewResponse.error) {
-      throw new Error(interviewResponse.error.message || `Failed to generate interview prep for ${role}`);
-    }
-    
-    let interviewData;
-    try {
-      const content = interviewResponse.data.content;
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      interviewData = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content);
-    } catch (e) {
-      // Fallback structure
-      interviewData = {
-        behavioral: [],
-        technical: [],
-        tellMeAboutYourself: { short: '', long: '' },
-        questionsToAsk: [],
-      };
-    }
-    
-    interviewPrep.push({ role, ...interviewData });
-  }
-
-  onProgress('Finalizing your career pack...', 95);
-
-  return {
-    cv,
-    linkedin,
-    coverLetters,
-    interviewPrep,
+  const total = 2 + selectedRoles.length * 2;
+  let done = 0;
+  const tick = (label: string) => {
+    done++;
+    onProgress(`${label} ready (${done}/${total})`, Math.round(10 + (done / total) * 85));
   };
+
+  onProgress('Generating all documents in parallel...', 10);
+
+  const cvP = invoke({ type: 'cv', profile, role: selectedRoles[0], jobDescription }, 'CV').then((c) => { tick('CV'); return c; });
+  const liP = invoke({ type: 'linkedin', profile, role: selectedRoles[0] }, 'LinkedIn').then((c) => { tick('LinkedIn'); return c; });
+  const coverP = Promise.all(selectedRoles.map((role) =>
+    invoke({ type: 'coverLetter', profile, role, jobDescription }, `cover letter (${role})`).then((content) => { tick(`Cover letter (${role})`); return { role, content }; })
+  ));
+  const interviewP = Promise.all(selectedRoles.map((role) =>
+    invoke({ type: 'interview', profile, role }, `interview prep (${role})`).then((content) => {
+      tick(`Interview prep (${role})`);
+      return { role, ...parseJson(content, { behavioral: [], technical: [], tellMeAboutYourself: { short: '', long: '' }, questionsToAsk: [] }) };
+    })
+  ));
+
+  const [cv, liRaw, coverLetters, interviewPrep] = await Promise.all([cvP, liP, coverP, interviewP]);
+
+  const linkedin = parseJson(liRaw, {
+    headline: 'Pharmacy Professional | Patient Care Advocate',
+    about: liRaw,
+    experienceBullets: [],
+    skills: [],
+    networkingMessage: '',
+    openToWork: '',
+  });
+
+  onProgress('Finalizing your career pack...', 98);
+  return { cv, linkedin, coverLetters, interviewPrep } as GeneratedOutputs;
 }
