@@ -134,6 +134,8 @@ serve(async (req) => {
       systemPrompt += `\n\nTARGET ROLE: ${role}\nGenerate 10 behavioral and 10 technical questions.`;
     }
 
+    systemPrompt += `\n\nACCURACY: Use ONLY facts present in PROFILE. Omit empty sections entirely instead of writing placeholders like "Not provided". Use the exact names of the university, employers, and project as given.${(type === "linkedin" || type === "interview") ? " Return ONLY raw JSON, no markdown fences." : ""}`;
+
     const userMessage = `Generate ${type} content for:
 
 PROFILE:
@@ -154,7 +156,7 @@ ${role ? `TARGET ROLE: ${role}` : ''}`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userMessage },
         ],
-        temperature: 0.7,
+        temperature: 0.4,
         max_tokens: 4000,
       }),
     });

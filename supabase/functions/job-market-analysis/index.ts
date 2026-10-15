@@ -77,7 +77,7 @@ ${profile ? `CANDIDATE PROFILE:
 - Skills: ${profile.skills?.hardSkills?.join(', ') || 'Not specified'}
 - Target: ${profile.selectedRoles?.join(', ') || roleType}` : ''}
 
-Provide comprehensive job market intelligence with realistic data for this specific location.`;
+Provide comprehensive job market intelligence for this specific location. Use local currency, real employer types and real job boards used in that country (e.g. Indeed, LinkedIn, Bayt, NHS Jobs, Seek, Naukri). Base salaries on published ranges you are confident about; be conservative and never invent named statistics. Return only valid JSON.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -91,7 +91,7 @@ Provide comprehensive job market intelligence with realistic data for this speci
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userMessage },
         ],
-        temperature: 0.7,
+        temperature: 0.3,
         max_tokens: 3000,
       }),
     });
