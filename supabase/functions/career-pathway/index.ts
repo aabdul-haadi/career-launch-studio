@@ -138,7 +138,7 @@ Provide comprehensive career pathway analysis with realistic assessments and act
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userMessage },
         ],
-        temperature: 0.7,
+        temperature: 0.3,
         max_tokens: 4000,
       }),
     });
